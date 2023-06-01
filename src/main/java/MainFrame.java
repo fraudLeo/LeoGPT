@@ -1,10 +1,23 @@
 import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
+import com.theokanning.openai.completion.chat.ChatMessage;
+import com.theokanning.openai.service.OpenAiService;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
 
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -23,8 +36,172 @@ public class MainFrame extends JFrame{
     private static int FormSize = 3;
     //设置字体大小
     private static int FontSize = 12;
+    //创建唯一实例
+    //单例模式的目的是确保一个类只有一个实例，
+    // 并提供一个全局访问点来获取该实例。
+    // 在这种情况下，INSTANCE 变量是用来存储 MainFrame 类的唯一实例。
+    private static MainFrame INSTANCE = null;
+    //openAI服务接口创建
+    private OpenAiService service;
+    //菜单栏
+    private JMenuBar menuBar;
+    //Parser 是一个用于解析用户输入或处理界面数据的工具类或接口。将用户输入转换为特定的数据类型，或者解析和处理界面上的数据模型。
+    private static Parser parser;
+    //网页渲染模型
+    private static HtmlRenderer renderer;
+    //判断是否为网页模式显示
+    private static Boolean isHtmlView = false;
+    //创建可滚动视图区
+    private static JScrollPane scrollPane;
+    //可用于在图形用户界面中显示和编辑多种类型的富文本内容。日常模式
+    private static JEditorPane DisplayArea;
+    //富文本格式,网页模式
+    private static JEditorPane HTMLArea;
+    /**不同部分的字体对象
+     */
+    //对话中"你"的部分
+    private static Style YouStyle;
+    private static Style InvisibleStyle;
+    //对话中GPT的部分
+    private static Style GPTStyle;
+    private static Style ChatStyle;
+    private static Style ErrorStyle;
+    //消息队列!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    private final static ArrayList<ChatMessage> messages = new ArrayList<>();
+    /**
+     * JEditorPane: JEditorPane 是一个用于显示和编辑富文本内容的 Swing 组件。
+     * 它是一个通用的文本显示区域，可以显示多种格式的文本，如 HTML、RTF、文本等。
+     * JEditorPane 提供了基本的文本编辑功能，如插入、删除、选择文本等，
+     * 以及处理超链接和其他与文本内容相关的功能。它是一个可视化的组件，
+     * 可以在图形用户界面中显示和交互。
+     *
+     * StyledDocument: StyledDocument 是一个接口，用于管理富文本文档的样式。
+     * 它是 javax.swing.text 包中的一部分，扩展了 Document 接口，
+     * 并提供了处理文本样式和属性的方法。StyledDocument 允许您在文档中应用和管理不同的样式，
+     * 并将样式应用于指定范围的文本。它提供了更精细的控制和灵活性，使您能够定义和应用多个样式，
+     * 如字体、颜色、粗体、斜体等，以创建自定义的富文本文档。
+     *
+     * 简而言之，JEditorPane 是用于显示和编辑富文本内容的组件，而 StyledDocument 是一个接口，用于管理富文本文档的样式。JEditorPane 可以使用 StyledDocument 实现对文本样式的控制和管理，通过将不同的 StyledDocument 实例设置给 JEditorPane，可以实现不同样式的文本显示和编辑。
+     */
+    //处理富文本的精细控制
+    private static StyledDocument doc;
 
 
+
+
+
+    public MainFrame() {
+        //不允许窗口的大小发生自定义变化, 可能也是和自适应有关,这边先设置不能够更改
+        setResizable(false);
+        //将单例指向自己
+        INSTANCE = this;
+
+        //设置标题
+        setTitle("ARK");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        //根据所提供的API,初始化GPT
+        service =  new OpenAiService(properties.getProperty("apikey"),properties.getProperty("timeout") == null
+                && properties.getProperty("timeout").isEmpty()? Duration.ZERO : Duration.ofSeconds(Long.parseLong(properties.getProperty("timeout"))));
+
+        //创建菜单栏
+        menuBar = new JMenuBar();
+        //创建菜单栏选项
+        JMenu optionMenu = new JMenu("选项");
+        menuBar.add(optionMenu);
+
+        //以网页模式展示
+        parser = Parser.builder().build();
+        renderer = HtmlRenderer.builder().build();
+
+        //状态切换
+        JMenuItem htmlView = new JMenuItem("网页展示");
+        //添加监听器
+        htmlView.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (isHtmlView) {
+                    //将富文本变成可滚动区域
+                    scrollPane.setViewportView(DisplayArea);
+                    htmlView.setText("切换展示");
+                    isHtmlView = false;
+                } else {
+                    scrollPane.setViewportView(HTMLArea);
+                    resetHTMLAreaStyle();
+                    try {
+                        //文本框中的将数据对象转换成文本
+                        parser.parse(DisplayArea.getDocument().getText(0,DisplayArea.getDocument().getLength()));
+                        HTMLArea.setText("正常模式");
+                        isHtmlView = true;
+                    } catch (BadLocationException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        //添加模式切换功能
+        optionMenu.add(htmlView);
+
+        //修改页面大小
+        JMenu formSize = new JMenu("页面大小");
+        optionMenu.add(formSize);
+
+        //小型窗口的item
+        JMenuItem smallView = new JMenuItem("小型窗口");
+        formSize.add(smallView);
+        smallView.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (FormSize!=1) {
+                    FontSize = 1;
+                    setFormSize();
+                }
+            }
+        });
+        //中等窗口的item
+        JMenuItem mediumView = new JMenuItem("中型窗口");
+        formSize.add(mediumView);
+        mediumView.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (FontSize!=2) {
+                    FontSize = 2;
+                    setFormSize();
+                }
+            }
+        });
+        //大型窗口的item
+        JMenuItem largeView = new JMenuItem("大型窗口");
+        formSize.add(largeView);
+        largeView.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (FontSize!=3) {
+                    FontSize = 3;
+                    setFormSize();
+                }
+            }
+        });
+
+        //设置字体
+        JMenu fontSize = new JMenu("字体大小");
+        optionMenu.add(fontSize);
+
+        JMenuItem defaultSize = new JMenuItem("Default (12)");
+        fontSize.add(defaultSize);
+        defaultSize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (FontSize!=12) {
+                    FontSize = 12;
+                    setFontSize();
+                    refreshMessages();
+                }
+            }
+        });
+
+    }
 
 
 
@@ -132,7 +309,7 @@ public class MainFrame extends JFrame{
 
                 //设置logo
 //                System.out.println(getClass().toString());
-//                frame.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/logo.png")));
+                frame.setIconImage(Toolkit.getDefaultToolkit().getImage("logo.png"));
                 //获取配置文件里面的字体数据
                 if (properties.getProperty("FontSize") !=null && properties.getProperty("FontSize").isEmpty()) {
                     FontSize = Integer.parseInt(properties.getProperty("FontSize"));
@@ -238,5 +415,47 @@ public class MainFrame extends JFrame{
             }
         }
 
+    }
+
+    //将文本正确显示为html,需要先将他转换为普通文本,这样转换地更加彻底
+    private static void resetHTMLAreaStyle() {
+        HTMLArea.setContentType("text/plain");
+        HTMLArea.setContentType("text/html");
+    }
+
+    /**
+     * 设置不同模块的字体大小
+     */
+    public void setFontSize() {
+        StyleConstants.setFontSize(YouStyle, FontSize);
+        StyleConstants.setFontSize(GPTStyle, FontSize);
+        StyleConstants.setFontSize(ChatStyle, FontSize);
+        StyleConstants.setFontSize(ErrorStyle, FontSize);
+    }
+
+    /**
+     * 刷新当前消息记录
+     */
+    public void refreshMessages() {
+        DisplayArea.setText("");
+        for (ChatMessage message : messages) {
+            if(message.getRole().equals("user")) {
+                try {
+                    doc.insertString(doc.getLength(), "You", YouStyle);
+                    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
+                    doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
+                } catch (BadLocationException e) {
+                    e.printStackTrace();
+                }
+            }else{
+                try {
+                    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
+                    doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
+                    doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
+                } catch (BadLocationException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
