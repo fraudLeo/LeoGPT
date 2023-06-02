@@ -1,23 +1,25 @@
+import com.jtattoo.plaf.TitlePane;
 import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
+import com.theokanning.openai.completion.chat.ChatCompletionChoice;
+import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
+import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
 import javax.swing.*;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.*;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Properties;
 
@@ -85,8 +87,22 @@ public class MainFrame extends JFrame{
      */
     //处理富文本的精细控制
     private static StyledDocument doc;
-
-
+    //和GPT的对话文件进行保存,关键功能!!!!!!!!!
+    private File gptSaveFile;
+    //设置提交按钮
+    private static JButton SubmitButton;
+    //查看关于页面是否展开
+    private Boolean aboutShow = false;
+    //判断加载文件窗口是否打开
+    private Boolean cloaderopen = false;
+    //另一个页面的对象,是加载文件窗口
+    private ChatLoader cloader;
+    //加载文件的加载目录
+    private String chatDir;
+    //组件块儿,主要的东西!!!!!!!!!!!!!!!!!!!!!!!
+    private JPanel contentPane;
+    //创建滚动
+    private JScrollPane scrollPane_1;
 
 
 
@@ -104,6 +120,86 @@ public class MainFrame extends JFrame{
         service =  new OpenAiService(properties.getProperty("apikey"),properties.getProperty("timeout") == null
                 && properties.getProperty("timeout").isEmpty()? Duration.ZERO : Duration.ofSeconds(Long.parseLong(properties.getProperty("timeout"))));
 
+        //------------------------------------------------------------------------------------------
+        //设置上下左右的边框
+        contentPane.setBorder(new EmptyBorder(5,5,5,5));
+        setContentPane(contentPane);
+        //不使用风格
+        contentPane.setLayout(null);
+        //创建滚动区域
+        scrollPane = new JScrollPane();
+        contentPane.add(scrollPane);
+        //创建展示区域,默认和HTML显示
+        DisplayArea = new JEditorPane();
+        DisplayArea.setEditable(false);
+        DisplayArea.setContentType("text/rft");
+        scrollPane.setViewportView(DisplayArea);
+
+        HTMLArea = new JEditorPane();
+        HTMLArea.setEditable(false);
+        HTMLArea.setContentType("text/html");
+        HTMLArea.setBackground(Color.white);
+        scrollPane.setViewportView(HTMLArea);
+
+        //这里开始是自己的文本格式
+        StyleContext sc = StyleContext.getDefaultStyleContext();
+        //字的重量
+        YouStyle = sc.addStyle("bold",null);
+        //字的字体
+        StyleConstants.setFontFamily(YouStyle,"Tahoma");
+        //字的大小
+        StyleConstants.setFontSize(YouStyle,FontSize);
+        //感觉下面的没有也行
+//        StyleConstants.setBold(YouStyle,true);
+
+        //下面开始设置GPT的文本格式
+        GPTStyle = sc.addStyle("bold",null);
+        StyleConstants.setFontFamily(GPTStyle,"Tahoma");
+        StyleConstants.setFontSize(GPTStyle,FontSize);
+        StyleConstants.setBold(GPTStyle,true);
+        //设置字的颜色
+        StyleConstants.setForeground(GPTStyle,Color.RED);
+
+
+        InvisibleStyle = sc.addStyle("bold", null);
+        StyleConstants.setForeground(InvisibleStyle, DisplayArea.getBackground());
+
+        ChatStyle = sc.addStyle("black", null);
+        StyleConstants.setFontFamily(ChatStyle, "Tahoma");
+        StyleConstants.setFontSize(ChatStyle, FontSize);
+
+        ErrorStyle = sc.addStyle("ErrorStyle", null);
+        StyleConstants.setItalic(ErrorStyle, true);
+        StyleConstants.setFontFamily(ErrorStyle, "Tahoma");
+        StyleConstants.setFontSize(ErrorStyle, FontSize);
+
+
+        if(selTheme == 1) {
+            StyleConstants.setForeground(YouStyle, Color.ORANGE); //getHSBColor(30f/360, 0.8f, 1f)
+            StyleConstants.setForeground(ChatStyle, Color.WHITE); //Color.getHSBColor(0f, 0f, 0.8f)
+            StyleConstants.setForeground(ErrorStyle, Color.WHITE); //Color.getHSBColor(0f, 0f, 0.8f)
+        }else {
+            StyleConstants.setForeground(YouStyle, Color.BLUE);
+            StyleConstants.setForeground(ChatStyle, Color.BLACK);
+            StyleConstants.setForeground(ErrorStyle, Color.BLACK);
+        }
+        //------------------------------------------------------------------------------------------
+
+        //获取文本内容!!!!!!!!!!!!
+        doc = (StyledDocument) DisplayArea.getDocument();
+        //------------------------------------------------------------------------------------------
+
+        //设置点击提交按钮
+        SubmitButton = new JButton("提交");
+        SubmitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                submit();
+            }
+        });
+
+
+        //------------------------------------------------------------------------------------------
         //创建菜单栏
         menuBar = new JMenuBar();
         //创建菜单栏选项
@@ -142,6 +238,7 @@ public class MainFrame extends JFrame{
 
         //添加模式切换功能
         optionMenu.add(htmlView);
+        //------------------------------------------------------------------------------------------
 
         //修改页面大小
         JMenu formSize = new JMenu("页面大小");
@@ -183,12 +280,13 @@ public class MainFrame extends JFrame{
                 }
             }
         });
+        //------------------------------------------------------------------------------------------
 
         //设置字体
         JMenu fontSize = new JMenu("字体大小");
         optionMenu.add(fontSize);
-
-        JMenuItem defaultSize = new JMenuItem("Default (12)");
+        //默认字体
+        JMenuItem defaultSize = new JMenuItem("默认大小 (12)");
         fontSize.add(defaultSize);
         defaultSize.addActionListener(new ActionListener() {
             @Override
@@ -200,10 +298,234 @@ public class MainFrame extends JFrame{
                 }
             }
         });
+        //大字体
+        JMenuItem largeSize = new JMenuItem("大字体 (16)");
+        fontSize.add(largeSize);
+        largeSize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (FontSize != 16) {
+                    FontSize = 16;
+                    setFontSize();
+                    refreshMessages();
+                }
+            }
+        });
+        //超大字体
+        JMenuItem exLargeSize = new JMenuItem("超大字体 (20)");
+        fontSize.add(exLargeSize);
+        exLargeSize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (FontSize!=20){
+                    FontSize = 20;
+                    setFontSize();
+                    refreshMessages();
+                }
+            }
+        });
+        //自定义字体
+        JMenuItem customSize = new JMenuItem("自定义");
+        fontSize.add(customSize);
+        customSize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Integer fs = Integer.valueOf(JOptionPane.showInputDialog(null,"请输入你的字号:","自定义字体",JOptionPane.PLAIN_MESSAGE));
+                if (FontSize!= fs) {
+                    FontSize = fs;
+                    setFontSize();;
+                    refreshMessages();
+                }
+            }
+        });
+        //------------------------------------------------------------------------------------------
+
+        //保存对话文件(前瞻,只是设置保存文件的名称样式),这部分的作用用于切换模式,状态保存模式.另一份日志或者文件提取在另一part
+        JMenu fileName = new JMenu("文件命名");
+        optionMenu.add(fileName);
+        //自动命名
+        JMenuItem auto = new JMenuItem("自动");
+        fileName.add(auto);
+        auto.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (gptSaveFile != null) {
+                    AutoTitle();
+                } else {
+                    JOptionPane.showMessageDialog(null,"没有聊天记录文件","Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        //自定义命名
+        JMenuItem custom = new JMenuItem("自定义");
+        fileName.add(custom);
+        custom.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (gptSaveFile != null) {
+                    //代表的是No icon is used.
+                    String title = JOptionPane.showInputDialog(null, "请输入标题", "命名", JOptionPane.PLAIN_MESSAGE);
+                    if (title!= null) {
+                        //以json格式保存,方便将来扩展功能传输信息
+                        File file = new File(gptSaveFile.getParentFile(), title + ".json");
+                        //判断重名或者存在
+                        if (!file.exists()) {
+                            //首先重命名
+                            gptSaveFile.renameTo(file);
+                            //再将对象属性给他
+                            gptSaveFile = file;
+                            //表示成功,Used for information messages.
+                            JOptionPane.showMessageDialog(null,"成功创建文件","Success",JOptionPane.INFORMATION_MESSAGE);
+                            //重命名实例标题名称
+                            INSTANCE.setTitle("GPT-"+title);
+                        } else {
+                            JOptionPane.showMessageDialog(null,"???我也不知道出了啥错误","Error",JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(null,"未找到文件","Error",JOptionPane.ERROR_MESSAGE);
+                }
+
+
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        //操作上面的文件,用于删除记录
+        JMenu delete = new JMenu("删除当前对话");
+        delete.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (gptSaveFile !=null && gptSaveFile.exists()) {
+                    gptSaveFile.delete();
+                    reset();
+                } else {
+                    JOptionPane.showMessageDialog(null, "文件没有找到","Error",JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        menuBar.add(delete);
+        //------------------------------------------------------------------------------------------
+
+        //退回当前对话
+        JMenu revert = new JMenu("退后");
+        revert.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (messages.size()>=2) {//因为一来一回,一个问题两个人要说话,所以退回版本得退两次
+                    //弹出去
+                    messages.remove(messages.size()-1);
+                    messages.remove(messages.size()-1);
+                    //状态得进行一次刷新
+                    refreshMessages();
+                } else {
+                    JOptionPane.showMessageDialog(null,"消息数量太少了,不需要删除","Error",JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        menuBar.add(revert);
+        //------------------------------------------------------------------------------------------
+        JMenu aboutMenu = new JMenu("关于");
+        aboutMenu.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                //关于信息,新建一个包装类
+                About about = new About();
+                //这种方式适用于加载本地文件或远程 URL 中的图像。直接输入url适合在网页里面操作.
+                about.setIconImage(Toolkit.getDefaultToolkit().getImage("log.png"));
+                about.setVisible(true);
+                about.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        aboutShow = false;
+                    }
+                });
+            }
+        });
+        menuBar.add(aboutMenu);
+        //------------------------------------------------------------------------------------------
+        //加载记录
+        JMenu load = new JMenu("加载记录");
+        load.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (cloaderopen != true) {
+                    cloader = new ChatLoader(chatDir);
+                    cloader.setVisible(true);
+                    cloader.setIconImage(Toolkit.getDefaultToolkit().getImage("log.png"));
+                    cloaderopen = true;
+                    cloader.addWindowListener(new WindowAdapter() {
+                        @Override
+                        public void windowClosing(WindowEvent e) {
+                            cloaderopen = false;
+                        }
+                    });
+                }
+            }
+        });
+        menuBar.add(load);
+
+        //------------------------------------------------------------------------------------------
+
 
     }
 
+    private void submit() {
+        //这里还没写
+    }
 
+    /**
+     * 用于重置当前状态
+     */
+    private void reset() {
+        isStreamRunning = false;
+        messages.clear();
+        gptSaveFile = null;
+        GPTConvo = "";
+        DisplayArea.setText("");
+        HTMLArea.setText("");
+        resetHTMLAreaStyle();
+        ChatArea.setText("");
+        setTitle("JavaGPT");
+        first = true;
+    }
+
+    /**
+     * 自定义对话标题
+     */
+    private void AutoTitle() {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                setTitle("程序正在生成标题,请耐心等待");
+                SubmitButton.setText("加载中");
+                StringBuilder stringBuilder = new StringBuilder();
+                //解铃还须系铃人,利用gpt总结当前对话
+                final ChatMessage sysMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), "为当前对话创建简易标题概括");
+                //将得到的messege添加到本来的消息列表里面
+                messages.add(sysMessage);
+                //
+                ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
+                        .builder()
+                        .model(properties.getProperty("model"))
+                        .messages(messages)
+                        .n(1)
+                        .maxTokens(25)
+                        .logitBias(new HashMap<>())
+                        .build();
+                service.streamChatCompletion(chatCompletionRequest)
+                        .doOnError(Throwable::printStackTrace)
+                        .blockingForEach(chunk -> {
+                            for (ChatCompletionChoice choice : chunk.getChoices()) {
+                                if (choice.getMessage().getContent()!=null) {
+                                    stringBuilder.append(choice.getMessage().getContent());
+                                }
+                            }
+                        });
+            }
+        });
+    }
 
 
     public static void main(String[] args) {
@@ -424,7 +746,7 @@ public class MainFrame extends JFrame{
     }
 
     /**
-     * 设置不同模块的字体大小
+     * 设置不同模块的字体大小,进行全局更改
      */
     public void setFontSize() {
         StyleConstants.setFontSize(YouStyle, FontSize);
@@ -438,6 +760,7 @@ public class MainFrame extends JFrame{
      */
     public void refreshMessages() {
         DisplayArea.setText("");
+        //ChatMessage是openAI的类,封装了role和content两个
         for (ChatMessage message : messages) {
             if(message.getRole().equals("user")) {
                 try {
