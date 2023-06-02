@@ -1,3 +1,4 @@
+import com.google.gson.Gson;
 import com.jtattoo.plaf.TitlePane;
 import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
 import com.theokanning.openai.completion.chat.ChatCompletionChoice;
@@ -6,6 +7,7 @@ import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
 import lombok.SneakyThrows;
+import okhttp3.internal.http2.ErrorCode;
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -113,6 +115,8 @@ public class MainFrame extends JFrame{
     private Boolean chathistory = true;
     //判断是不是之前没有聊天历史记录,是第一个就是真,就往下执行
     private Boolean first = true;
+    //判断是否设立自动取标题
+    private Boolean autotitle = true;
 
 
 
@@ -208,6 +212,8 @@ public class MainFrame extends JFrame{
                 submit();
             }
         });
+
+
 
 
         //------------------------------------------------------------------------------------------
@@ -549,16 +555,36 @@ public class MainFrame extends JFrame{
                             newFile();
                         }
                         writeMessagesToFile(gptSaveFile_2.getPath());
+                        if (first&&autotitle) {
+                                AutoTitle();
+                                first = false;
+                        }
+                    }
+                    //清空当前
+                    CharArea.setText("");
+                } else {
+                    if (messages.size()!=0) {
+                        messages.remove(messages.size() - 1);
+                        doc.insertString(doc.getLength(), "\n\n" + "之前的提示和回应因为取消所以没有保存"+"\n", ErrorStyle);
                     }
                 }
+                isStreamRunning = false;
+                SubmitButton.setText("提交");
             }
         });
+        thread.start();
     }
 
     //写入文件规定格式
     private void writeMessagesToFile(String path) throws FileNotFoundException {
-        PrintWriter printWriter = new PrintWriter(path);
-        new Go
+        try (PrintWriter writer = new PrintWriter(path)) {
+            Gson gson = new Gson();
+            for (ChatMessage message : messages) {
+                String json = gson.toJson(message);
+                writer.println(json);
+            }
+        }
+
     }
 
     //通过GPT对话文件创建一个新的文件
