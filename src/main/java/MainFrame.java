@@ -5,6 +5,8 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
+import lombok.SneakyThrows;
+import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 
@@ -18,10 +20,7 @@ import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Properties;
+import java.util.*;
 
 public class MainFrame extends JFrame{
 
@@ -89,6 +88,7 @@ public class MainFrame extends JFrame{
     private static StyledDocument doc;
     //和GPT的对话文件进行保存,关键功能!!!!!!!!!
     private File gptSaveFile;
+    private File gptSaveFile_2;
     //设置提交按钮
     private static JButton SubmitButton;
     //查看关于页面是否展开
@@ -103,6 +103,17 @@ public class MainFrame extends JFrame{
     private JPanel contentPane;
     //创建滚动
     private JScrollPane scrollPane_1;
+    //判断输入流是否还在
+    private Boolean isStreamRunning = false;
+    //输入的文本放到对话框里的对象
+    public static JTextArea CharArea;
+    //GPT临时的信息回复
+    private static String GPTConvo;
+    //聊天历史判断
+    private Boolean chathistory = true;
+    //判断是不是之前没有聊天历史记录,是第一个就是真,就往下执行
+    private Boolean first = true;
+
 
 
 
@@ -472,7 +483,105 @@ public class MainFrame extends JFrame{
     }
 
     private void submit() {
-        //这里还没写
+        //倘若标识显示的是true,也得给我改回来,用于多次提问
+        if(isStreamRunning) {
+            isStreamRunning = false;
+            //设置标签名称
+            SubmitButton.setText("Submit");
+            return;
+        }
+        Thread thread = new Thread(new Runnable() {
+            @SneakyThrows
+            @Override
+            public void run() {
+                SubmitButton.setText("终止提问");
+                doc.insertString(doc.getLength(),"You",YouStyle);
+                doc.insertString(doc.getLength(),":\n",InvisibleStyle);
+                doc.insertString(doc.getLength(),CharArea.getText() + "\n\n",ChatStyle);
+                doc.insertString(doc.getLength(),"CuteBot",GPTStyle);
+                doc.insertString(doc.getLength(),":\n",InvisibleStyle);
+
+                StringBuilder stringBuilder = new StringBuilder();
+                //获取user的输入对象,并添加到messages里面
+                final ChatMessage chatMessage = new ChatMessage(ChatMessageRole.USER.value(), CharArea.getText());
+                messages.add(chatMessage);
+                ChatCompletionRequest chatCompletionRequest = ChatCompletionRequest
+                        .builder()
+                        .maxTokens(Integer.parseInt(properties.getProperty("maxTokens")))
+                        .n(1)
+                        .messages(messages)
+                        .model(properties.getProperty("model"))
+                        .logitBias(new HashMap<>())
+                        .build();
+                //设置状态,开始读流
+                /*takeWhile操作符会在满足给定条件的情况下，从流中获取元素，一旦条件不满足，它将停止获取后续的元素。
+                    在这个例子中，res -> isStreamRunning是一个Lambda表达式，用于定义条件函数。
+                    它使用isStreamRunning变量来判断是否继续取元素
+                 */
+                isStreamRunning = true;
+                service.streamChatCompletion(chatCompletionRequest)
+                        .doOnError(Throwable::printStackTrace)
+                        .takeWhile(res -> isStreamRunning)
+                        .blockingForEach(chunk -> {
+                            for (ChatCompletionChoice choice : chunk.getChoices()) {
+                                if (choice.getMessage().getContent() != null) {
+                                    stringBuilder.append(choice.getMessage().getContent());
+                                }
+                                doc.insertString(doc.getLength(), choice.getMessage().getContent(),ChatStyle);
+
+                            }
+                        });
+                if (isStreamRunning) {
+                    doc.insertString(doc.getLength(),"\n\n",ChatStyle);
+                    if (isHtmlView) {
+                        resetHTMLAreaStyle();
+                        Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
+                        HTMLArea.setText(renderer.render(document));
+                    }
+                    //获取到GPT说的内容
+                    GPTConvo = stringBuilder.toString();
+                    final ChatMessage systemMessage = new ChatMessage(ChatMessageRole.SYSTEM.value(), GPTConvo);
+                    messages.add(systemMessage);
+
+                    if (chathistory) {
+                        if (first) {
+                            //如果是有历史记录并且当前是第一个(存疑
+                            newFile();
+                        }
+                        writeMessagesToFile(gptSaveFile_2.getPath());
+                    }
+                }
+            }
+        });
+    }
+
+    //写入文件规定格式
+    private void writeMessagesToFile(String path) throws FileNotFoundException {
+        PrintWriter printWriter = new PrintWriter(path);
+        new Go
+    }
+
+    //通过GPT对话文件创建一个新的文件
+    private void newFile() {
+        String randFileName = getRandomString();
+        gptSaveFile_2 = new File(chatDir + "\\Chat_" + randFileName + ".json");
+        //如果文件名一直重复
+        while(gptSaveFile_2.exists()) {
+            randFileName = getRandomString();
+            gptSaveFile_2 = new File(chatDir + "\\Chat_" + randFileName + ".json");
+        }
+        setTitle("JavaGPT - Chat_" + randFileName);
+    }
+
+    //创建新的文件名,(随即创建)
+    private String getRandomString() {
+        String letters = "abcdefghijklmnopqrstuvwxyz1234567890";
+        Random random = new Random();
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            stringBuilder.append(letters.charAt(random.nextInt(letters.length())));
+        }
+        return stringBuilder.toString();
     }
 
     /**
@@ -520,11 +629,33 @@ public class MainFrame extends JFrame{
                             for (ChatCompletionChoice choice : chunk.getChoices()) {
                                 if (choice.getMessage().getContent()!=null) {
                                     stringBuilder.append(choice.getMessage().getContent());
+
                                 }
                             }
                         });
+                messages.remove(messages.size() - 1);
+                String title = stringBuilder.toString();
+                //将特殊符号转换为空,方便保存名字
+                title = title.replaceAll("[\\\\/:*?\"<>|]", "");
+                if(title.substring(title.length() - 1 ).equals(".")) {
+                    title = title.substring(0,title.length()- 1);
+                }
+                SubmitButton.setText("提交");
+                if (title!=null) {
+                    File file = new File(gptSaveFile.getParentFile(), title + ".json");
+                    if (file.exists()) {
+                        JOptionPane.showMessageDialog(null,"文件已存在","Error",JOptionPane.ERROR_MESSAGE);
+                        setTitle("CuteGPT - " + gptSaveFile.getName().substring(0,gptSaveFile.getName().length()-5));
+                    }
+                    else {
+                        gptSaveFile.renameTo(file);
+                        gptSaveFile = file;
+                        INSTANCE.setTitle("CuteGPT - " + gptSaveFile.getName().substring(0,gptSaveFile.getName().length()-5));
+                    }
+                }
             }
         });
+        thread.start();
     }
 
 
