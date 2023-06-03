@@ -14,13 +14,20 @@ import org.commonmark.renderer.html.HtmlRenderer;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.text.*;
+import javax.tools.Tool;
 
 import java.awt.*;
+import java.awt.datatransfer.*;
 import java.awt.event.*;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
 
@@ -117,7 +124,59 @@ public class MainFrame extends JFrame{
     private Boolean first = true;
     //判断是否设立自动取标题
     private Boolean autotitle = true;
+    //保存按钮
+    private JButton saveButton;
+    //导入按钮
+    private JButton jButton;
+    //开启二次提交
+    private Boolean enter2submit = true;
+    private static MainFrame frame;
+    private JPanel contentPane;
 
+    private OpenAiService service;
+//    private final static ArrayList<ChatMessage> messages = new ArrayList<>();
+//    private static JTextArea ChatArea;
+//    private static JButton SubmitButton;
+//    private static JScrollPane scrollPane;
+//    private static JScrollPane scrollPane_1;
+    private static JButton SaveButton;
+    private static JButton ImportButton;
+    private static JButton ResetButton;
+
+//    private static JEditorPane DisplayArea;
+//    private static JEditorPane HTMLArea;
+//    private static StyledDocument doc;
+//    private JMenuBar menuBar;
+//    private static String GPTConvo;
+
+//    private File FGPTConvo;
+
+    public static Properties prop;
+    public static String version = "1.3.2";
+//    private Boolean first = true;
+//    private Boolean chathistory = true;
+//    private Boolean autotitle = true;
+//    private Boolean enter2submit = true;
+//    private Boolean cloaderopen = false;
+//    private Boolean aframeopen = false;
+//    private static Boolean isHTMLView = false;
+//    private static Parser parser;
+//    private static HtmlRenderer renderer;
+    public static Boolean isAlpha = true;
+//    private Boolean isStreamRunning = false;
+//    private static int FormSize = 3;
+//    private static int FontSize = 12;
+    public static int seltheme = 0;
+//    private ChatLoader cloader;
+//    private String chatDir;
+
+    //Initializing Style objects for RTF text in DisplayArea
+//    private static Style YouStyle;
+//    private static Style InvisibleStyle;
+//    private static Style GPTStyle;
+//    private static Style ChatStyle;
+//    private static Style ErrorStyle;
+//    private static MainFrame INSTANCE = null;
 
 
 
@@ -126,7 +185,7 @@ public class MainFrame extends JFrame{
         setResizable(false);
         //将单例指向自己
         INSTANCE = this;
-
+        contentPane = new JPanel();
         //设置标题
         setTitle("ARK");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -148,7 +207,7 @@ public class MainFrame extends JFrame{
         DisplayArea = new JEditorPane();
         DisplayArea.setEditable(false);
         DisplayArea.setContentType("text/rft");
-        scrollPane.setViewportView(DisplayArea);
+//        scrollPane.setViewportView(DisplayArea);
 
         HTMLArea = new JEditorPane();
         HTMLArea.setEditable(false);
@@ -213,8 +272,110 @@ public class MainFrame extends JFrame{
             }
         });
 
+        //保存按钮
+        saveButton = new JButton("保存");
+        saveButton.setFont(new Font("Arial Black",Font.BOLD, 6));
+        saveButton.addActionListener(new ActionListener() {
+            @SneakyThrows
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                //打开当前目录
+                File defaultDir = new File(".");
+                //选择文件保存路径
+                JFileChooser jFileChooser = new JFileChooser(defaultDir);
+                jFileChooser.setDialogTitle("保存对话");
+                //弹出窗口
+                int res = jFileChooser.showSaveDialog(null);
+                if (res == jFileChooser.APPROVE_OPTION) {
+                    File selectedFile = jFileChooser.getSelectedFile();
 
+                    FileWriter fileWriter = new FileWriter(selectedFile);
 
+                    String plainText = DisplayArea.getDocument().getText(0,DisplayArea.getDocument().getLength());
+                    fileWriter.write(plainText);
+                    fileWriter.close();
+                    JOptionPane.showMessageDialog(null,"文件保存成功");
+                }
+            }
+        });
+
+        //将保存按钮添加到视图
+        contentPane.add(saveButton);
+        //------------------------------------------------------------------------------------------
+
+        //添加导入按钮
+        jButton = new JButton("保存");
+        jButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser jFileChooser = new JFileChooser(new File("."));
+                jFileChooser.setDialogTitle("导入聊天文件");
+                int res = jFileChooser.showOpenDialog(null);
+                if (res ==JFileChooser.APPROVE_OPTION) {
+                    String absoluteFile = jFileChooser.getSelectedFile().getAbsolutePath();
+                    try {
+                        CharArea.setText(new String(Files.readAllBytes(Paths.get(absoluteFile))));
+                    } catch (IOException ex) {
+                        JOptionPane.showMessageDialog(null,ex.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        });
+
+        jButton.setIcon(new ImageIcon("upFolder.gif"));
+        contentPane.add(jButton);
+
+        //------------------------------------------------------------------------------------------
+        //监听鼠标事件
+        DisplayArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    //展示鼠标右键功能
+                    showDisplayMenu(e.getX(),e.getY());
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    //展示鼠标右键功能
+                    showDisplayMenu(e.getX(),e.getY());
+                }
+            }
+        });
+
+        HTMLArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showHTMLMenu(e.getX(), e.getY());
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showHTMLMenu(e.getX(), e.getY());
+                }
+            }
+        });
+
+        CharArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showChatMenu(e.getX(), e.getY());
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    showChatMenu(e.getX(), e.getY());
+                }
+            }
+        });
 
         //------------------------------------------------------------------------------------------
         //创建菜单栏
@@ -484,10 +645,183 @@ public class MainFrame extends JFrame{
         menuBar.add(load);
 
         //------------------------------------------------------------------------------------------
+        //允许html文本超链接
+        HTMLArea.addHyperlinkListener(new HyperlinkListener() {
+            @Override
+            public void hyperlinkUpdate(HyperlinkEvent e) {
+                if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                    try {
+                        Desktop.getDesktop().browse(e.getURL().toURI());
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    } catch (URISyntaxException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
+        //------------------------------------------------------------------------------------------
+        //Bulk property setting-------------------
+        try {
+            if(properties.getProperty("autoscroll") != null && !properties.getProperty("autoscroll").isEmpty()) {
+                if(properties.getProperty("autoscroll").equals("true")) {
+                    DefaultCaret caret = (DefaultCaret)DisplayArea.getCaret();
+                    caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+                }
+            }
+
+            if(properties.getProperty("chat_history") != null && !properties.getProperty("chat_history").isEmpty()) {
+                if(properties.getProperty("chat_history").equals("true")){
+                    chathistory = true;
+                }else{
+                    chathistory = false;
+                }
+            }
+
+            if(properties.getProperty("autotitle") != null && !properties.getProperty("autotitle").isEmpty()) {
+                if(properties.getProperty("autotitle").equals("true")){
+                    autotitle = true;
+                }else{
+                    autotitle = false;
+                }
+            }
+
+            if(properties.getProperty("EnterToSubmit") != null && !properties.getProperty("EnterToSubmit").isEmpty()) {
+                if(properties.getProperty("EnterToSubmit").equals("true")){
+                    CharArea.getInputMap().put(KeyStroke.getKeyStroke("ENTER"), "none");
+                }else{
+                    enter2submit = false;
+                }
+            }
 
 
+            if(properties.getProperty("chat_location_override") != null && !properties.getProperty("chat_location_override").isEmpty()){
+                chatDir = properties.getProperty("chat_location_override");
+            }else {
+                try {
+                    chatDir = new File(getClass().getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getParent();
+                    chatDir = chatDir + "\\chat_history";
+                    File directory = new File(chatDir);
+                    if (!directory.exists()) {
+                        directory.mkdirs();
+                    }
+                } catch (URISyntaxException e1) {
+                    JOptionPane.showMessageDialog(null, e1.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            //----------------------------------------
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+
+        }
     }
 
+    private void showChatMenu(int x, int y) {
+        JPopupMenu popupMenu = new JPopupMenu();
+
+        JMenuItem copyMenuItem = new JMenuItem("Copy");
+        copyMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedText = CharArea.getSelectedText();
+                if (selectedText != null) {
+                    StringSelection selection = new StringSelection(selectedText);
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clipboard.setContents(selection, null);
+                }
+            }
+        });
+
+
+        popupMenu.add(copyMenuItem);
+
+        JMenuItem pasteMenuItem = new JMenuItem("Paste");
+        pasteMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedText = CharArea.getSelectedText();
+                if (selectedText != null && !selectedText.isEmpty()) {
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    Transferable contents = clipboard.getContents(null);
+                    if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                        try {
+                            String clipboardText = (String) contents.getTransferData(DataFlavor.stringFlavor);
+                            CharArea.replaceSelection(clipboardText);
+                        } catch (UnsupportedFlavorException | IOException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                } else {
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    Transferable contents = clipboard.getContents(null);
+                    if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                        try {
+                            String clipboardText = (String) contents.getTransferData(DataFlavor.stringFlavor);
+                            int caretPos = CharArea.getCaretPosition();
+                            CharArea.insert(clipboardText, caretPos);
+                        } catch (UnsupportedFlavorException | IOException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
+        popupMenu.add(pasteMenuItem);
+
+        JMenuItem clearMenuItem = new JMenuItem("Clear");
+        clearMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                CharArea.setText("");
+            }
+        });
+        popupMenu.add(clearMenuItem);
+
+        popupMenu.show(CharArea, x, y);
+    }
+
+    private void showHTMLMenu(int x, int y) {
+
+        JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem copyMenuItem = new JMenuItem("Copy");
+        copyMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedText = HTMLArea.getSelectedText();
+                if (selectedText != null) {
+                    StringSelection selection = new StringSelection(selectedText);
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clipboard.setContents(selection, null);
+                }
+            }
+        });
+        popupMenu.add(copyMenuItem);
+        popupMenu.show(HTMLArea, x, y);
+    }
+
+
+    //展示鼠标功能
+    private void showDisplayMenu(int x, int y) {
+        JPopupMenu jPopupMenu = new JPopupMenu();
+        JMenuItem copy = new JMenuItem("Copy");
+        copy.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedText = DisplayArea.getSelectedText();
+                if (selectedText!=null) {
+                    StringSelection stringSelection = new StringSelection(selectedText);
+                    Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    systemClipboard.setContents(stringSelection,null);
+                }
+            }
+        });
+
+        jPopupMenu.add(copy);
+        jPopupMenu.show(DisplayArea, x,y);
+    }
+
+    //提交按钮
     private void submit() {
         //倘若标识显示的是true,也得给我改回来,用于多次提问
         if(isStreamRunning) {
@@ -621,7 +955,7 @@ public class MainFrame extends JFrame{
         DisplayArea.setText("");
         HTMLArea.setText("");
         resetHTMLAreaStyle();
-        ChatArea.setText("");
+        CharArea.setText("");
         setTitle("JavaGPT");
         first = true;
     }
@@ -835,6 +1169,33 @@ public class MainFrame extends JFrame{
 //                ImportButton.setBounds(56, 585, 43, 23);
 //                break;
 //        }
+    }
+
+    public static void loadchat(String fullfilepath, String filename) throws BadLocationException {
+
+        INSTANCE.setTitle("JavaGPT - " + filename);
+        try {
+
+            DisplayArea.setText("");
+
+            messages.clear();
+            readMessagesFromFile(fullfilepath);
+            if(isHTMLView) {
+                resetHTMLAreaStyle();
+                Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
+                //System.out.println(renderer.render(document));
+                HTMLArea.setText(renderer.render(document));
+            }
+
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+        INSTANCE.FGPTConvo = new File(fullfilepath);
+
+        INSTANCE.first = false;
+
     }
 
     /**
