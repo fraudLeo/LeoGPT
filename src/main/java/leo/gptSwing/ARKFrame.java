@@ -202,46 +202,16 @@ public class ARKFrame extends JFrame {
         INSTANCE = this;
         //创建主容器
         contentPane = new JPanel();
-        //设置标题
-        setTitle("ARK");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        //根据所提供的API,初始化GPT
-        service =  new OpenAiService(properties.getProperty("apikey"),properties.getProperty("timeout") == null
-                && properties.getProperty("timeout")
-                .isEmpty()? Duration.ZERO : Duration.ofSeconds(Long.parseLong(properties.getProperty("timeout"))));
-
-        /**
-         * 设置主容器
-         */
-        setMainContentPane();
+        //创建滚动窗口
+        scrollPane_1 = new JScrollPane();
+        contentPane.add(scrollPane_1);
         ChatArea = new JTextArea();
-        //获取文本内容
-        doc = (StyledDocument) DisplayArea.getDocument();
-
-        //创建菜单按钮
-        setMenu();
-
-        //用户使用界面
-        //提交按钮
-        setSubmitButtom();
-        //新建聊天
-        setNewChat();
-        //设置保存按钮
-        setSaveButton();
-        //设置导入系统
-        setLoadButton();
-        //设置右键功能
-        setRightMouse();
-        //批量属性设定
-        setBulkProperties();
-        //------------------------------------
         //setWrapStyleWord方法用于指定是否应在行太长而无法适合文本区域的分配宽度时换行。
         //如果设置为true，则行将在单词边界处而不是字符边界处换行。如果设置为false，则行将在字符边界处换行。
         ChatArea.setWrapStyleWord(true);
         //判断是否到达长度,有就下降到下一行
         ChatArea.setLineWrap(true);
-        //创建快捷热键,回车键,并判断
+        //创建快捷热键,回车键
         ChatArea.addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 if(enter2submit) {
@@ -259,6 +229,45 @@ public class ARKFrame extends JFrame {
                 }
             }
         });
+        scrollPane_1.setViewportView(ChatArea);
+//        contentPane.setComponentZOrder(ChatArea, 0);
+        parser = Parser.builder().build();
+        renderer = HtmlRenderer.builder().build();
+
+        //设置标题
+        setTitle("ARK");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        //根据所提供的API,初始化GPT
+        service =  new OpenAiService(properties.getProperty("apikey"),properties.getProperty("timeout") == null
+                && properties.getProperty("timeout")
+                .isEmpty()? Duration.ZERO : Duration.ofSeconds(Long.parseLong(properties.getProperty("timeout"))));
+
+        /**
+         * 设置主容器
+         */
+        setMainContentPane();
+        //获取文本内容
+        doc = (StyledDocument) DisplayArea.getDocument();
+        //新建聊天
+        setNewChat();
+        //设置保存按钮
+        setSaveButton();
+        //设置导入系统
+        setLoadButton();
+        //设置右键功能
+
+        //创建菜单按钮
+        setMenu();
+
+        //用户使用界面
+        //提交按钮
+        setSubmitButtom();
+        setRightMouse();
+        //批量属性设定
+        setBulkProperties();
+        //------------------------------------
+
 
         //------------------------------------
 
@@ -649,16 +658,13 @@ public class ARKFrame extends JFrame {
      * 创建新页面
      */
     private void setNewChat() {
-        ResetButton = new JButton("New Chat");
+        ResetButton = new JButton("新建聊天");
         ResetButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 reset();
             }
         });
         contentPane.add(ResetButton);
-        //创建滚动窗口
-        scrollPane_1 = new JScrollPane();
-        contentPane.add(scrollPane_1);
     }
 
     /**
@@ -870,14 +876,14 @@ public class ARKFrame extends JFrame {
     private void addAbout() {
 
         JMenu aboutMenu = new JMenu("关于");
-        aboutMenu.addActionListener(new ActionListener() {
+        aboutMenu.addMouseListener(new MouseAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 if(aframeopen != true) {
                     //关于信息,新建一个包装类
                     About aframe = new About();
                     //这种方式适用于加载本地文件或远程 URL 中的图像。直接输入url适合在网页里面操作.
-                    aframe.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("logo.png")));
+                    aframe.setIconImage(Toolkit.getDefaultToolkit().getImage("logo.png"));
                     aframe.setVisible(true);
                     aframeopen = true;
                     aframe.addWindowListener(new java.awt.event.WindowAdapter() {
@@ -971,6 +977,47 @@ public class ARKFrame extends JFrame {
         setFormSizeMenu();
         setFontSizeMenu();
         setRenameMenu();
+        setViewMenu();
+
+    }
+
+    /**
+     * 设置视图方式
+     */
+    private void setViewMenu() {
+        JMenuItem HTMLViewMenuItem = new JMenuItem("HTML View");
+        HTMLViewMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if(isHTMLView) {
+                    try {
+                        scrollPane.setViewportView(DisplayArea);
+                        HTMLViewMenuItem.setText("HTML视图");
+                        isHTMLView=false;
+                    } catch (Exception e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
+                    }
+                }else {
+                    try {
+                        scrollPane.setViewportView(HTMLArea);
+                        resetHTMLAreaStyle();
+                        Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
+                        HTMLArea.setText(renderer.render(document));
+                        HTMLViewMenuItem.setText("正常视图");
+                        isHTMLView=true;
+                    } catch (Exception e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
+                    }
+
+                }
+
+            }
+        });
+
+        OptionMenu.add(HTMLViewMenuItem);
+
+
 
     }
 
@@ -1290,6 +1337,7 @@ public class ARKFrame extends JFrame {
             StyleConstants.setForeground(ChatStyle, Color.BLACK);
             StyleConstants.setForeground(ErrorStyle, Color.BLACK);
         }
+        doc = (StyledDocument) DisplayArea.getDocument();
 
     }
 
@@ -1297,28 +1345,37 @@ public class ARKFrame extends JFrame {
      * 设置全局样式
      */
     private static void setFormSize() {
-        switch(FormSize){
+//
+        switch (FormSize) {
             case 1:
+                // 第一种大小
                 frame.getContentPane().setPreferredSize(new Dimension(475, 532));
-                frame.pack();
-                scrollPane_1.setBounds(103, 454, 363, 69);
                 scrollPane.setBounds(10, 11, 456, 432);
+                scrollPane_1.setBounds(103, 454, 363, 69);
                 SubmitButton.setBounds(10, 454, 89, 23);
                 SaveButton.setBounds(10, 477, 43, 23);
                 ImportButton.setBounds(56, 477, 43, 23);
                 ResetButton.setBounds(10, 500, 89, 23);
                 break;
             case 2:
+                // 第二种大小
                 frame.getContentPane().setPreferredSize(new Dimension(1370, 960));
-                frame.pack();
-                SubmitButton.setBounds(13, 831, 148, 36);
-                ResetButton.setBounds(13, 914, 148, 36);
                 scrollPane.setBounds(13, 15, 1344, 802);
                 scrollPane_1.setBounds(171, 831, 1186, 118);
+                SubmitButton.setBounds(13, 831, 148, 36);
+                ResetButton.setBounds(13, 914, 148, 36);
                 SaveButton.setBounds(13, 873, 73, 36);
                 ImportButton.setBounds(88, 873, 73, 36);
                 break;
             default:
+//                // 默认大小
+//                frame.getContentPane().setPreferredSize(new Dimension(686, 647));
+//                scrollPane.setBounds(10, 11, 667, 532);
+//                scrollPane_1.setBounds(10, 554, 568, 85);
+//                SubmitButton.setBounds(588, 554, 89, 23);
+//                ResetButton.setBounds(588, 616, 89, 23);
+//                SaveButton.setBounds(588, 585, 43, 23);
+//                ImportButton.setBounds(636, 585, 43, 23);
                 frame.getContentPane().setPreferredSize(new Dimension(686, 647));
                 frame.pack();
                 SubmitButton.setBounds(10, 554, 89, 23);
@@ -1329,6 +1386,11 @@ public class ARKFrame extends JFrame {
                 ImportButton.setBounds(56, 585, 43, 23);
                 break;
         }
+
+// 调整完样式后调用pack()进行重绘
+        frame.pack();
+
+
     }
 
     /**

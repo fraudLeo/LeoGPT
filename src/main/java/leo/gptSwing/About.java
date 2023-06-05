@@ -22,7 +22,7 @@ public class About extends JFrame {
         contentPane.setLayout(null);
 
         JLabel lblNewLabel = new JLabel("");
-        lblNewLabel.setIcon(new ImageIcon(About.class.getResource("logo.png")));
+        lblNewLabel.setIcon(new ImageIcon("logo.png"));
         lblNewLabel.setBounds(160, 22, 84, 83);
         contentPane.add(lblNewLabel);
 
