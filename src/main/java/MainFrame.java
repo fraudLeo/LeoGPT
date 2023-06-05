@@ -130,53 +130,7 @@ public class MainFrame extends JFrame{
     private JButton jButton;
     //开启二次提交
     private Boolean enter2submit = true;
-    private static MainFrame frame;
-    private JPanel contentPane;
 
-    private OpenAiService service;
-//    private final static ArrayList<ChatMessage> messages = new ArrayList<>();
-//    private static JTextArea ChatArea;
-//    private static JButton SubmitButton;
-//    private static JScrollPane scrollPane;
-//    private static JScrollPane scrollPane_1;
-    private static JButton SaveButton;
-    private static JButton ImportButton;
-    private static JButton ResetButton;
-
-//    private static JEditorPane DisplayArea;
-//    private static JEditorPane HTMLArea;
-//    private static StyledDocument doc;
-//    private JMenuBar menuBar;
-//    private static String GPTConvo;
-
-//    private File FGPTConvo;
-
-    public static Properties prop;
-    public static String version = "1.3.2";
-//    private Boolean first = true;
-//    private Boolean chathistory = true;
-//    private Boolean autotitle = true;
-//    private Boolean enter2submit = true;
-//    private Boolean cloaderopen = false;
-//    private Boolean aframeopen = false;
-//    private static Boolean isHTMLView = false;
-//    private static Parser parser;
-//    private static HtmlRenderer renderer;
-    public static Boolean isAlpha = true;
-//    private Boolean isStreamRunning = false;
-//    private static int FormSize = 3;
-//    private static int FontSize = 12;
-    public static int seltheme = 0;
-//    private ChatLoader cloader;
-//    private String chatDir;
-
-    //Initializing Style objects for RTF text in DisplayArea
-//    private static Style YouStyle;
-//    private static Style InvisibleStyle;
-//    private static Style GPTStyle;
-//    private static Style ChatStyle;
-//    private static Style ErrorStyle;
-//    private static MainFrame INSTANCE = null;
 
 
 
@@ -192,7 +146,8 @@ public class MainFrame extends JFrame{
 
         //根据所提供的API,初始化GPT
         service =  new OpenAiService(properties.getProperty("apikey"),properties.getProperty("timeout") == null
-                && properties.getProperty("timeout").isEmpty()? Duration.ZERO : Duration.ofSeconds(Long.parseLong(properties.getProperty("timeout"))));
+                && properties.getProperty("timeout")
+                .isEmpty()? Duration.ZERO : Duration.ofSeconds(Long.parseLong(properties.getProperty("timeout"))));
 
         //------------------------------------------------------------------------------------------
         //设置上下左右的边框
@@ -1169,33 +1124,6 @@ public class MainFrame extends JFrame{
 //                ImportButton.setBounds(56, 585, 43, 23);
 //                break;
 //        }
-    }
-
-    public static void loadchat(String fullfilepath, String filename) throws BadLocationException {
-
-        INSTANCE.setTitle("JavaGPT - " + filename);
-        try {
-
-            DisplayArea.setText("");
-
-            messages.clear();
-            readMessagesFromFile(fullfilepath);
-            if(isHTMLView) {
-                resetHTMLAreaStyle();
-                Node document = parser.parse(DisplayArea.getDocument().getText(0, DisplayArea.getDocument().getLength()));
-                //System.out.println(renderer.render(document));
-                HTMLArea.setText(renderer.render(document));
-            }
-
-
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
-        INSTANCE.FGPTConvo = new File(fullfilepath);
-
-        INSTANCE.first = false;
-
     }
 
     /**
