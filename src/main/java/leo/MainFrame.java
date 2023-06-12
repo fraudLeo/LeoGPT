@@ -1,3 +1,5 @@
+package leo;
+
 import com.google.gson.Gson;
 import com.jtattoo.plaf.TitlePane;
 import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
@@ -6,6 +8,8 @@ import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
 import com.theokanning.openai.service.OpenAiService;
+import leo.gptSwing.About;
+import leo.gptSwing.ChatLoader;
 import lombok.SneakyThrows;
 import okhttp3.internal.http2.ErrorCode;
 import org.commonmark.node.Node;
@@ -845,8 +849,8 @@ public class MainFrame extends JFrame{
                         }
                         writeMessagesToFile(gptSaveFile_2.getPath());
                         if (first&&autotitle) {
-                                AutoTitle();
-                                first = false;
+                            AutoTitle();
+                            first = false;
                         }
                     }
                     //清空当前
@@ -1082,7 +1086,7 @@ public class MainFrame extends JFrame{
                 if (properties.getProperty("FontSize") !=null && properties.getProperty("FontSize").isEmpty()) {
                     FontSize = Integer.parseInt(properties.getProperty("FontSize"));
                 }
-            frame.setVisible(true);
+                frame.setVisible(true);
             }
         });
 
