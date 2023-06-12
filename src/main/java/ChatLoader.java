@@ -20,6 +20,8 @@ import java.util.Comparator;
 
 import javax.swing.DefaultListModel;
 import java.awt.BorderLayout;
+import java.util.Scanner;
+
 public class ChatLoader extends JFrame{
     private JPanel mainP;
     private DefaultListModel<FileListItem> fileListItemDefaultListModel;
@@ -53,7 +55,7 @@ public class ChatLoader extends JFrame{
         JMenuItem refreshItem = new JMenuItem("刷新");
         JMenuItem renameItem = new JMenuItem("重命名");
         JMenuItem sortItem = new JMenuItem("排序");
-
+        Scanner scanner = new Scanner(System.in);
         JMenuItem refreshItem2 = new JMenuItem("刷新");
         JMenuItem sortItem2 = new JMenuItem("排序");
 

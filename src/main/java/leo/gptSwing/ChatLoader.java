@@ -22,7 +22,7 @@ public class ChatLoader extends JFrame {
     private int selectedIndex;
 
     /**
-     * Launch the application.
+     * 测试运行
      */
 	/*public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -79,14 +79,14 @@ public class ChatLoader extends JFrame {
         popupMenu = new JPopupMenu();
         popupMenu2 = new JPopupMenu();
 
-        // Add menu items to the PopupMenu
-        JMenuItem deleteItem = new JMenuItem("Delete");
-        JMenuItem renameItem = new JMenuItem("Rename");
-        JMenuItem refreshItems = new JMenuItem("Refresh");
-        JMenuItem sortItems = new JMenuItem("Sort");
+        // 添加菜单
+        JMenuItem deleteItem = new JMenuItem("删除");
+        JMenuItem renameItem = new JMenuItem("重命名");
+        JMenuItem refreshItems = new JMenuItem("刷新");
+        JMenuItem sortItems = new JMenuItem("排序");
 
-        JMenuItem refreshItems2 = new JMenuItem("Refresh");
-        JMenuItem sortItems2 = new JMenuItem("Sort");
+        JMenuItem refreshItems2 = new JMenuItem("刷新");
+        JMenuItem sortItems2 = new JMenuItem("排序");
 
         popupMenu.add(deleteItem);
         popupMenu.add(renameItem);
@@ -97,26 +97,26 @@ public class ChatLoader extends JFrame {
         popupMenu2.add(sortItems2);
 
 
-        //Deletes selected chat file from fileList if it exists
+        //如果存在文件，就进行删除
         deleteItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
 
-                File file = new File(fileList.getModel().getElementAt(selectedIndex).filePath); //replace path/to/file with the actual file path
-                if(file.exists()) { //checks if the file exists
-                    file.delete(); //deletes the file
+                File file = new File(fileList.getModel().getElementAt(selectedIndex).filePath); //替换路径
+                if(file.exists()) { //检查文件是否存在
+                    file.delete(); //如果文件存在，就进行删除
                     model.removeElementAt(selectedIndex);
                 } else {
-                    JOptionPane.showMessageDialog(null, "File not found", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(null, "没有找到文件", "Error", JOptionPane.ERROR_MESSAGE);
                 }
 
             }
         });
 
 
-        //Renames selected chat file from fileList if it exists
+        //重命名功能
         renameItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                String title = JOptionPane.showInputDialog(null, "Please enter a title:", "Rename", JOptionPane.PLAIN_MESSAGE);
+                String title = JOptionPane.showInputDialog(null, "请输入标题:", "Rename", JOptionPane.PLAIN_MESSAGE);
                 if (title != null) {
                     File file = new File(fileList.getModel().getElementAt(selectedIndex).filePath);
                     String path = file.getParent();
@@ -125,20 +125,20 @@ public class ChatLoader extends JFrame {
                     File newFile = new File(path, title + ext);
 
                     if (newFile.exists()) {
-                        JOptionPane.showMessageDialog(null, "File already exists", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "文件已经存在了", "Error", JOptionPane.ERROR_MESSAGE);
                     } else {
                         File txtFile = new File(path, title + ".json");
                         file.renameTo(newFile);
                         new File(path, name.substring(0, name.length() - ext.length()) + ".json").renameTo(txtFile);
                         refreshlist();
-                        JOptionPane.showMessageDialog(null, "File renamed successfully", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "文件重命名成功", "Success", JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
 
             }
         });
 
-        //Adds ActionListners to JPopMenu elements
+        //对弹出窗口进行监听
         refreshItems.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 refreshlist();
@@ -166,7 +166,7 @@ public class ChatLoader extends JFrame {
         });
         //------------------------------------------
 
-        //Sends selected chat file to MainFrame.loadchat() and loads it into the main JFrame
+        //将程序加载到主页面的主程序中
         fileList.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 if (e.isPopupTrigger()) showPopupMenu(e);
@@ -195,10 +195,10 @@ public class ChatLoader extends JFrame {
         contentPane.add(scrollPane);
     }
 
-    //Refreshes a list with file names from a directory.
-    //The directory is represented by the "path" variable.
-    //The function applies a file filter that only accepts files with ".json" extension and sorts them by the date of last modification or alphabetically depending on the value of the "isAlpha" static boolean variable.
-    //Finally, it creates a new list item for each file, which contains its name and complete path without an extension, and adds it to the list model.
+//    使用目录中的文件名刷新列表。
+//    目录由“路径”变量表示。
+//    该函数应用一个文件过滤器，该过滤器仅接受扩展名为“.json”的文件，并根据“isAlpha”静态布尔变量的值按上次修改日期或字母顺序对它们进行排序。
+//    最后，它为每个文件创建一个新列表项，其中包含其名称和完整路径（不带扩展名），并将其添加到列表模型中。
     public void refreshlist() {
         File directory = new File(path);
         model.clear();
@@ -225,7 +225,7 @@ public class ChatLoader extends JFrame {
         }
     }
 
-    //Shows correct PopupMenu on right-click based on if a file from fileList is selected
+    //根据是否选择了文件列表中的文件，在右键单击时显示正确的弹出菜单
     private void showPopupMenu(MouseEvent e) {
         selectedIndex = fileList.getSelectedIndex();
         if (selectedIndex == -1) {

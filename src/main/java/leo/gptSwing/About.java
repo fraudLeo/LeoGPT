@@ -31,7 +31,7 @@ public class About extends JFrame {
         lblNewLabel_1.setBounds(118, 105, 169, 51);
         contentPane.add(lblNewLabel_1);
 
-        JLabel lblNewLabel_2 = new JLabel("(May 12 2023)");
+        JLabel lblNewLabel_2 = new JLabel("(Jun 5 2023)");
         lblNewLabel_2.setFont(new Font("Tahoma", Font.PLAIN, 16));
         lblNewLabel_2.setBounds(142, 145, 114, 28);
         contentPane.add(lblNewLabel_2);
@@ -42,16 +42,16 @@ public class About extends JFrame {
         contentPane.add(lblNewLabel_3);
         JLabel lblHttpsgithubcomfrankcybjavagpt;
         if(ARKFrame.seltheme != 1) {
-            lblHttpsgithubcomfrankcybjavagpt = new JLabel("<html><a href=\\\"https://github.com/FrankCYB/JavaGPT\\\">https://github.com/FrankCYB/JavaGPT</a></html>");
+            lblHttpsgithubcomfrankcybjavagpt = new JLabel("<html><a href=\\\"https://github.com/fraudLeo/LeoGPT\\\">https://github.com/fraudLeo/LeoGPT</a></html>");
         }else {
-            lblHttpsgithubcomfrankcybjavagpt = new JLabel("<html><a style='color: yellow;' href='https://github.com/FrankCYB/JavaGPT'>https://github.com/FrankCYB/JavaGPT</a></html>");
+            lblHttpsgithubcomfrankcybjavagpt = new JLabel("<html><a style='color: yellow;' href='https://github.com/fraudLeo/LeoGPT'>https://github.com/fraudLeo/LeoGPT</a></html>");
         }
         lblHttpsgithubcomfrankcybjavagpt.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 try {
                     // Get the URI of the hyperlink
-                    URI uri = new URI("https://github.com/FrankCYB/JavaGPT");
+                    URI uri = new URI("https://github.com/fraudLeo/LeoGPT");
 
                     // Open the URI in a browser
                     Desktop.getDesktop().browse(uri);

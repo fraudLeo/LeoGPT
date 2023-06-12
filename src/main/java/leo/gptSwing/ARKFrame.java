@@ -1,7 +1,16 @@
 package leo.gptSwing;
 
 import com.google.gson.Gson;
+//import com.jtattoo.plaf.darkstar.DarkStarLookAndFeel;
+import com.jtattoo.plaf.acryl.AcrylLookAndFeel;
+import com.jtattoo.plaf.aero.AeroLookAndFeel;
+import com.jtattoo.plaf.graphite.GraphiteLookAndFeel;
 import com.jtattoo.plaf.hifi.HiFiLookAndFeel;
+import com.jtattoo.plaf.luna.LunaLookAndFeel;
+import com.jtattoo.plaf.mcwin.McWinLookAndFeel;
+import com.jtattoo.plaf.mint.MintLookAndFeel;
+import com.jtattoo.plaf.noire.NoireLookAndFeel;
+import com.sun.java.swing.plaf.motif.MotifLookAndFeel;
 import com.theokanning.openai.completion.chat.ChatCompletionChoice;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -613,7 +622,7 @@ public class ARKFrame extends JFrame {
     private void setSaveButton() {
         SaveButton = new JButton("");
         try {
-            SaveButton.setIcon(new ImageIcon(ARKFrame.class.getResource("FloppyDrive.gif")));
+            SaveButton.setIcon(new ImageIcon("FloppyDrive.gif"));
         }catch(Exception e4) {
             JOptionPane.showMessageDialog(null, e4.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -702,7 +711,7 @@ public class ARKFrame extends JFrame {
                 doc.insertString(doc.getLength(),"You",YouStyle);
                 doc.insertString(doc.getLength(),":\n",InvisibleStyle);
                 doc.insertString(doc.getLength(),ChatArea.getText() + "\n\n",ChatStyle);
-                doc.insertString(doc.getLength(),"CuteBot",GPTStyle);
+                doc.insertString(doc.getLength(),"ARK",GPTStyle);
                 doc.insertString(doc.getLength(),":\n",InvisibleStyle);
 
                 StringBuilder stringBuilder = new StringBuilder();
@@ -905,9 +914,9 @@ public class ARKFrame extends JFrame {
     private void addRevert() {
         //退回当前对话
         JMenu revert = new JMenu("退后");
-        revert.addActionListener(new ActionListener() {
+        revert.addMouseListener(new MouseAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 if (messages.size()>=2) {//因为一来一回,一个问题两个人要说话,所以退回版本得退两次
                     //弹出去
                     messages.remove(messages.size()-1);
@@ -929,9 +938,9 @@ public class ARKFrame extends JFrame {
 
         //操作上面的文件,用于删除记录
         JMenu delete = new JMenu("删除当前对话");
-        delete.addActionListener(new ActionListener() {
+        delete.addMouseListener(new MouseAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 if (FGPTConvo !=null && FGPTConvo.exists()) {
                     FGPTConvo.delete();
                     reset();
@@ -1125,7 +1134,7 @@ public class ARKFrame extends JFrame {
                     File file = new File(FGPTConvo.getParentFile(), title + ".json");
                     if (file.exists()) {
                         JOptionPane.showMessageDialog(null,"文件已存在","Error",JOptionPane.ERROR_MESSAGE);
-                        setTitle("CuteGPT - " + FGPTConvo.getName().substring(0,FGPTConvo.getName().length()-5));
+                        setTitle("ARKGPT - " + FGPTConvo.getName().substring(0,FGPTConvo.getName().length()-5));
                     }
                     else {
                         FGPTConvo.renameTo(file);
@@ -1216,7 +1225,7 @@ public class ARKFrame extends JFrame {
                 }
             }else{
                 try {
-                    doc.insertString(doc.getLength(), "ChatGPT", GPTStyle);
+                    doc.insertString(doc.getLength(), "ARK", GPTStyle);
                     doc.insertString(doc.getLength(), ":\n", InvisibleStyle);
                     doc.insertString(doc.getLength(), message.getContent() + "\n\n", ChatStyle);
                 } catch (BadLocationException e) {
@@ -1306,6 +1315,7 @@ public class ARKFrame extends JFrame {
         StyleContext sc = StyleContext.getDefaultStyleContext();
 
         YouStyle = sc.addStyle("bold", null);
+        StyleConstants.setForeground(YouStyle, Color.BLACK);
         StyleConstants.setFontFamily(YouStyle, "Tahoma");
         StyleConstants.setFontSize(YouStyle, FontSize);
         StyleConstants.setBold(YouStyle, true);
@@ -1320,8 +1330,9 @@ public class ARKFrame extends JFrame {
         StyleConstants.setForeground(InvisibleStyle, DisplayArea.getBackground());
 
         ChatStyle = sc.addStyle("black", null);
-        StyleConstants.setFontFamily(ChatStyle, "Tahoma");
-        StyleConstants.setFontSize(ChatStyle, FontSize);
+        StyleConstants.setFontFamily(ChatStyle, "Arial");
+        StyleConstants.setFontSize(ChatStyle, 25);
+        StyleConstants.setForeground(YouStyle, Color.BLACK);
 
         ErrorStyle = sc.addStyle("ErrorStyle", null);
         StyleConstants.setItalic(ErrorStyle, true);
@@ -1369,21 +1380,21 @@ public class ARKFrame extends JFrame {
                 break;
             default:
 //                // 默认大小
-//                frame.getContentPane().setPreferredSize(new Dimension(686, 647));
-//                scrollPane.setBounds(10, 11, 667, 532);
-//                scrollPane_1.setBounds(10, 554, 568, 85);
-//                SubmitButton.setBounds(588, 554, 89, 23);
-//                ResetButton.setBounds(588, 616, 89, 23);
-//                SaveButton.setBounds(588, 585, 43, 23);
-//                ImportButton.setBounds(636, 585, 43, 23);
                 frame.getContentPane().setPreferredSize(new Dimension(686, 647));
-                frame.pack();
-                SubmitButton.setBounds(10, 554, 89, 23);
-                ResetButton.setBounds(10, 616, 89, 23);
                 scrollPane.setBounds(10, 11, 667, 532);
-                scrollPane_1.setBounds(109, 554, 568, 85);
-                SaveButton.setBounds(10, 585, 43, 23);
-                ImportButton.setBounds(56, 585, 43, 23);
+                scrollPane_1.setBounds(10, 554, 568, 85);
+                SubmitButton.setBounds(588, 554, 89, 23);
+                ResetButton.setBounds(588, 616, 89, 23);
+                SaveButton.setBounds(588, 585, 43, 23);
+                ImportButton.setBounds(636, 585, 43, 23);
+//                frame.getContentPane().setPreferredSize(new Dimension(686, 647));
+//                frame.pack();
+//                SubmitButton.setBounds(10, 554, 89, 23);
+//                ResetButton.setBounds(10, 616, 89, 23);
+//                scrollPane.setBounds(10, 11, 667, 532);
+//                scrollPane_1.setBounds(109, 554, 568, 85);
+//                SaveButton.setBounds(10, 585, 43, 23);
+//                ImportButton.setBounds(56, 585, 43, 23);
                 break;
         }
 
@@ -1406,11 +1417,25 @@ public class ARKFrame extends JFrame {
                 //设置了窗口标题的字体为 "Ebrima"，风格为普通（PLAIN），字号为 15。
                 p.put("windowTitleFont", "Ebrima PLAIN 15");
                 //可能是指禁用了某种背景纹理或图案的显示。
-                p.put("backgroundPattern", "off");
+                p.put("backgroundPattern", "on");
                 //将 Logo 字符串设置为空，可能是指移除了界面上的 Logo 或者设置为空字符串作为占位符
                 p.put("logoString", "");
                 HiFiLookAndFeel.setCurrentTheme(p);
-                UIManager.setLookAndFeel("com.jtattoo.plaf.hifi.HiFiLookAndFeel");
+//                UIManager.setLookAndFeel(new McWinLookAndFeel());
+//                UIManager.setLookAndFeel(new MintLookAndFeel());
+//                UIManager.setLookAndFeel(new GraphiteLookAndFeel());
+//                UIManager.setLookAndFeel(new LunaLookAndFeel());
+//                UIManager.setLookAndFeel(new MotifLookAndFeel());
+                //UIManager.setLookAndFeel(new AcrylLookAndFeel());
+//                UIManager.setLookAndFeel(new AeroLookAndFeel());
+//                UIManager.setLookAndFeel(new DarkStarLookAndFeel());
+//                UIManager.setLookAndFeel(new GraphiteLookAndFeel());
+                /**
+                 * 备选
+                 */
+                UIManager.setLookAndFeel(new NoireLookAndFeel());
+
+//                UIManager.setLookAndFeel(new HiFiLookAndFeel());
                 //代表选择了dark
                 seltheme = 1;
             }
@@ -1537,3 +1562,26 @@ public class ARKFrame extends JFrame {
 
 
 }
+
+
+/*
+#\u751F\u6210\u914D\u7F6E\u6587\u4EF6
+#Thu Jun 01 15:41:10 GMT+08:00 2023
+proxytype=https
+Theme=dark
+chat_location_override=
+EnterToSubmit=true
+model=gpt-3.5-turbo
+apikey=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
+proxyip=127.0.0.1
+WindowSize=medium
+autotitle=true
+maxTokens=1024
+proxyport=10809
+FontSize=12
+autoscroll=true
+timeout=30
+chat_history=true
+
+
+ */

@@ -566,7 +566,7 @@ public class MainFrame extends JFrame{
                 //关于信息,新建一个包装类
                 About about = new About();
                 //这种方式适用于加载本地文件或远程 URL 中的图像。直接输入url适合在网页里面操作.
-                about.setIconImage(Toolkit.getDefaultToolkit().getImage("log.png"));
+                about.setIconImage(Toolkit.getDefaultToolkit().getImage("logo.png"));
                 about.setVisible(true);
                 about.addWindowListener(new WindowAdapter() {
                     @Override
@@ -586,7 +586,7 @@ public class MainFrame extends JFrame{
                 if (cloaderopen != true) {
                     cloader = new ChatLoader(chatDir);
                     cloader.setVisible(true);
-                    cloader.setIconImage(Toolkit.getDefaultToolkit().getImage("log.png"));
+                    cloader.setIconImage(Toolkit.getDefaultToolkit().getImage("logo.png"));
                     cloaderopen = true;
                     cloader.addWindowListener(new WindowAdapter() {
                         @Override
